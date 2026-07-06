@@ -16,6 +16,7 @@
 |---|---|---|---|---|---|
 | 0 | 2026-07-07 | — | Инфраструктура форка: реестр патчей + CI-сборка образа | своя сборка в GHCR, без патчей ядра | `PATCHES.md`, `.github/workflows/build-fork-image.yaml` |
 | 1 | 2026-07-07 | `bc0b1b8` | CI-hardening: tag через env в manifest job + regex-валидация inputs.tag | injection-фикс по независимому ревью | `.github/workflows/build-fork-image.yaml` |
+| 2 | 2026-07-07 | `cd9ea0a` | Доперевод ru-RU: +174 строки рабочих экранов (79.7%→85.1% фронта) | русские рабочие экраны (D3) | `packages/twenty-front/src/locales/ru-RU.po` |
 
 ## Примечание Ф1 (2026-07-07)
 
