@@ -1,0 +1,100 @@
+name: build-fork-image
+
+# Сборка образа форка → ghcr.io/roscorr/twenty (amd64 + arm64, манифест-склейка).
+# Основано на packages/twenty-docker/twenty/Dockerfile (target: twenty = server+front).
+# Тяжёлая сборка живёт ТОЛЬКО здесь — Mac1/Mac2 образы не собирают.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag override (default: max-<sha7>)"
+        required: false
+        default: ""
+  push:
+    branches: ["max/main"]
+    paths-ignore: ["**.md"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.t.outputs.tag }}
+    steps:
+      - id: t
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=max-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: meta
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup || true
+          docker system prune -af || true
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/twenty-docker/twenty/Dockerfile
+          target: twenty
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-${{ matrix.arch }}
+          build-args: |
+            APP_VERSION=${{ needs.meta.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/Roscorr/twenty
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+
+  manifest:
+    needs: [meta, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create multi-arch manifest
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }} \
+            -t ghcr.io/roscorr/twenty:max-latest \
+            ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-amd64 \
+            ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-arm64
+          docker buildx imagetools inspect ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}
