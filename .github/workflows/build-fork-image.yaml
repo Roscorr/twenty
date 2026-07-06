@@ -69,6 +69,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # APP_VERSION обязан быть semver (конфиг-валидатор Twenty падает на голом теге —
+      # поймано живым инстансом 2026-07-07): base-версия из package.json + тег как prerelease.
+      - name: Compute semver APP_VERSION
+        id: ver
+        env:
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          BASE=$(node -p "require('./packages/twenty-server/package.json').version" 2>/dev/null || echo "0.0.0")
+          echo "semver=${BASE}-${TAG//[^a-zA-Z0-9.]/.}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -78,7 +88,7 @@ jobs:
           push: true
           tags: ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-${{ matrix.arch }}
           build-args: |
-            APP_VERSION=${{ needs.meta.outputs.tag }}
+            APP_VERSION=${{ steps.ver.outputs.semver }}
           labels: |
             org.opencontainers.image.source=https://github.com/Roscorr/twenty
           cache-from: type=gha,scope=${{ matrix.arch }}
