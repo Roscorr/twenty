@@ -99,6 +99,8 @@ import { BackfillLogoOnApplicationRegistrationSlowInstanceCommand } from './2-19
 import { AddDisplayFieldsToApplicationRegistrationFastInstanceCommand } from './2-19/2-19-instance-command-fast-1783073776590-add-display-fields-to-application-registration';
 import { BackfillDisplayFieldsOnApplicationRegistrationSlowInstanceCommand } from './2-19/2-19-instance-command-slow-1783073776591-backfill-display-fields-on-application-registration';
 import { AddInstanceFileTableFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1783240670564-add-instance-file-table';
+import { AddManifestFileIdToApplicationRegistrationFastInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-fast-1783327869173-add-manifest-file-id-to-application-registration';
+import { BackfillManifestFileIdOnApplicationRegistrationSlowInstanceCommand } from 'src/database/commands/upgrade-version-command/2-19/2-19-instance-command-slow-1783327904047-backfill-manifest-file-id-on-application-registration';
 
 export const INSTANCE_COMMANDS = [
   AddViewFieldGroupIdIndexOnViewFieldFastInstanceCommand,
@@ -200,4 +202,6 @@ export const INSTANCE_COMMANDS = [
   AddStatusToFileFastInstanceCommand,
   AddPendingMimeCheckToFileFastInstanceCommand,
   AddInstanceFileTableFastInstanceCommand,
+  AddManifestFileIdToApplicationRegistrationFastInstanceCommand,
+  BackfillManifestFileIdOnApplicationRegistrationSlowInstanceCommand,
 ];
