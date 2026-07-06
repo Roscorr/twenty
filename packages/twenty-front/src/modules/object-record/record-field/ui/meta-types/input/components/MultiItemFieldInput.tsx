@@ -348,6 +348,7 @@ export const MultiItemFieldInput = <T,>({
           value={inputValue}
           hasError={!errorData.isValid}
           renderInput={renderInput}
+          itemIndex={isAddingNewItem ? undefined : itemToEditIndex}
           onEscape={handleEscape}
           onChange={(value) => {
             value

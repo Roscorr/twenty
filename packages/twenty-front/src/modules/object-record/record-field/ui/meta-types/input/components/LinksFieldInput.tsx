@@ -7,9 +7,12 @@ import { recordFieldInputIsFieldInErrorComponentState } from '@/object-record/re
 import { type FieldLinksValue } from '@/object-record/record-field/ui/types/FieldMetadata';
 import { linksFieldValueSchema } from '@/object-record/record-field/ui/validation-schemas/linksFieldValueSchema';
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
-import { useContext, useMemo } from 'react';
+import { styled } from '@linaria/react';
+import { isNonEmptyString } from '@sniptt/guards';
+import { useContext, useMemo, useRef } from 'react';
 import { MULTI_ITEM_FIELD_DEFAULT_MAX_VALUES } from 'twenty-shared/constants';
 import { absoluteUrlSchema, isDefined } from 'twenty-shared/utils';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { FieldMetadataType } from '~/generated-metadata/graphql';
 import { MultiItemFieldInput } from './MultiItemFieldInput';
 
@@ -17,6 +20,34 @@ type LinkRecord = {
   url: string | null;
   label: string | null;
 };
+
+const StyledLinkInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[1]};
+  width: 100%;
+`;
+
+const StyledInput = styled.input`
+  background-color: transparent;
+  border: none;
+  box-sizing: border-box;
+  color: ${themeCssVariables.font.color.primary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: inherit;
+  font-weight: inherit;
+  height: 32px;
+  outline: none;
+  padding: ${themeCssVariables.spacing[0]} ${themeCssVariables.spacing[2]};
+  width: 100%;
+
+  &::placeholder,
+  &::-webkit-input-placeholder {
+    color: ${themeCssVariables.font.color.light};
+    font-family: ${themeCssVariables.font.family};
+    font-weight: ${themeCssVariables.font.weight.medium};
+  }
+`;
 
 export const LinksFieldInput = () => {
   const { draftValue, fieldDefinition, setDraftValue } = useLinksField();
@@ -29,6 +60,10 @@ export const LinksFieldInput = () => {
     () => getFieldLinkDefinedLinks(draftValue),
     [draftValue],
   );
+
+  // The label is an uncontrolled input seeded from the edited item; its value is
+  // read here on save. The URL keeps flowing through the shared string pipeline.
+  const labelInputRef = useRef<HTMLInputElement>(null);
 
   const parseArrayToLinksValue = (links: LinkRecord[]) => {
     const nextPrimaryLink = links.at(0);
@@ -98,7 +133,31 @@ export const LinksFieldInput = () => {
         errorMessage: '',
       })}
       onError={handleError}
-      formatInput={(input) => ({ url: input, label: null })}
+      formatInput={(input) => ({
+        url: input,
+        label: isNonEmptyString(labelInputRef.current?.value)
+          ? labelInputRef.current.value
+          : null,
+      })}
+      renderInput={({ value, onChange, autoFocus, placeholder, itemIndex }) => (
+        <StyledLinkInputContainer>
+          <StyledInput
+            autoFocus={autoFocus}
+            value={(value as string) ?? ''}
+            placeholder={placeholder}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <StyledInput
+            // Remount per edited item so the label reseeds from that item.
+            key={itemIndex ?? 'new'}
+            ref={labelInputRef}
+            defaultValue={
+              isDefined(itemIndex) ? (links[itemIndex]?.label ?? '') : ''
+            }
+            placeholder="Label"
+          />
+        </StyledLinkInputContainer>
+      )}
       renderItem={({
         value: link,
         index,

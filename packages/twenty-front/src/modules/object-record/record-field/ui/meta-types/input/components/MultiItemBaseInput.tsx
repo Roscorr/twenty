@@ -91,12 +91,16 @@ export type MultiItemBaseInputProps = Pick<
     autoFocus: HTMLInputProps['autoFocus'];
     placeholder: HTMLInputProps['placeholder'];
     hasError?: boolean;
+    // Index of the item being edited, or undefined when adding a new item.
+    // Mirrors formatInput's itemIndex so custom inputs can seed extra fields on edit.
+    itemIndex?: number;
   }) => React.ReactNode;
   error?: string | null;
   hasError?: boolean;
   hasItem: boolean;
   onChange: (value: string) => void;
   instanceId: string;
+  itemIndex?: number;
 };
 
 export const MultiItemBaseInput = forwardRef<
@@ -123,6 +127,7 @@ export const MultiItemBaseInput = forwardRef<
       hasError = false,
       hasItem,
       instanceId,
+      itemIndex,
     },
     ref,
   ) => {
@@ -150,6 +155,7 @@ export const MultiItemBaseInput = forwardRef<
               autoFocus,
               placeholder,
               hasError,
+              itemIndex,
             })
           ) : (
             <StyledInput

@@ -518,3 +518,63 @@ export const CanNotSetPrimaryLinkAsPrimaryLink: Story = {
     expect(setPrimaryOption).not.toBeInTheDocument();
   },
 };
+
+export const CreateLinkWithLabel: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    const urlInput = await canvas.findByPlaceholderText('URL');
+    await userEvent.type(urlInput, 'https://www.instagram.com/cristiano');
+
+    const labelInput = await canvas.findByPlaceholderText('Label');
+    await userEvent.type(labelInput, 'Cristiano Ronaldo Official{enter}');
+
+    // The custom label is displayed instead of the derived @handle.
+    const linkDisplay = await canvas.findByText('Cristiano Ronaldo Official');
+    expect(linkDisplay).toBeVisible();
+    expect(canvas.queryByText('@cristiano')).not.toBeInTheDocument();
+  },
+};
+
+export const EditSecondaryLinkKeepsLabel: Story = {
+  args: {
+    value: {
+      primaryLinkUrl: 'https://www.twenty.com',
+      primaryLinkLabel: 'Twenty Website',
+      secondaryLinks: [
+        {
+          url: 'https://www.instagram.com/cristiano',
+          label: 'Cristiano Ronaldo Official',
+        },
+      ],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    const secondaryLink = await canvas.findByText('Cristiano Ronaldo Official');
+    await userEvent.hover(secondaryLink);
+
+    const openDropdownButtons = await canvas.findAllByRole('button', {
+      expanded: false,
+    });
+    await userEvent.click(openDropdownButtons[1]);
+
+    const editOption = await within(
+      canvasElement.ownerDocument.body,
+    ).findByText('Edit');
+    await userEvent.click(editOption);
+
+    // The label seeds into the input on edit...
+    const labelInput = await canvas.findByPlaceholderText('Label');
+    expect(labelInput).toHaveValue('Cristiano Ronaldo Official');
+
+    // ...and saving without touching it preserves the label.
+    const urlInput = await canvas.findByPlaceholderText('URL');
+    await userEvent.type(urlInput, '{enter}');
+
+    const stillLabeled = await canvas.findByText('Cristiano Ronaldo Official');
+    expect(stillLabeled).toBeVisible();
+    expect(canvas.queryByText('@cristiano')).not.toBeInTheDocument();
+  },
+};
