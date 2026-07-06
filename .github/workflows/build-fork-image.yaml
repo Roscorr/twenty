@@ -30,6 +30,9 @@ jobs:
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           if [ -n "$INPUT_TAG" ]; then
+            if ! echo "$INPUT_TAG" | grep -Eq '^[a-zA-Z0-9._-]+$'; then
+              echo "invalid tag format: $INPUT_TAG" >&2; exit 1
+            fi
             echo "tag=$INPUT_TAG" >> "$GITHUB_OUTPUT"
           else
             echo "tag=max-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
@@ -91,10 +94,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create multi-arch manifest
+        env:
+          TAG: ${{ needs.meta.outputs.tag }}
         run: |
           docker buildx imagetools create \
-            -t ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }} \
+            -t "ghcr.io/roscorr/twenty:${TAG}" \
             -t ghcr.io/roscorr/twenty:max-latest \
-            ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-amd64 \
-            ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}-arm64
-          docker buildx imagetools inspect ghcr.io/roscorr/twenty:${{ needs.meta.outputs.tag }}
+            "ghcr.io/roscorr/twenty:${TAG}-amd64" \
+            "ghcr.io/roscorr/twenty:${TAG}-arm64"
+          docker buildx imagetools inspect "ghcr.io/roscorr/twenty:${TAG}"
